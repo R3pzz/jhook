@@ -9,8 +9,8 @@ namespace shared {
 	public:
 		/* so:
 		* 1. method is brand-new, called from and to the interpreter:
-		*		- we have to hook i2i entry in the normal way through a
-		*			trampoline,
+		*		- we have to hook i2i entry in the normal way
+		*			through a trampoline.
 		*		- we have to hook i2c entry same as i2i entry.
 		*		- we have to hook c2i entry as a normal c2i
 		*			entry also through a trampoline.
@@ -25,26 +25,26 @@ namespace shared {
 		*			and call original method from there with the same one via
 		*			a regular minhook.
 		*/
-		// то что снизу(не готовый вариант) я переделаю в соответствии с выше сказанным и кину
 		enum struct entryType : std::uint32_t {
 			kNone = 0u,
-#if 1
 			/* interpreter-to-interpreter entry. used in uncompiled methods
 			   that are called from an interpreter. */
 			kI2I = 1u,
+			/* interpreter-called method hooking sequence */
+			kUncompiled = 2u,
+			/* compiled method hooking sequence */
+			kCompiled = 3u,
+
+			/* these ones require different dispatch sequence and have to
+			   be handled differently in compiled and interpreted methods */
+#if 0
 			/* interpreter-to-compiled entry. used in compiled methods
-			   that are called from an interpreter. */
-			kI2C = 2u,
+				 that are called from an interpreter. */
+			kI2C = 4u,
 			/* compiled-to-interpreter or compiled-to-compiled(when nmethod is there) entry.
 				 used in interpreted methods that are called from a compiled one. */
-			kC2I = 3u,
-			/* c2i and i2c entries are hooked together. */
-			kC2I2C = 4u,
-			/* i2i and i2c entries are hooked together. */
-			kC2I2I = 5u,
+			kC2I = 5u,
 #endif
-			/* i2i, i2c and c2i entries are hooked together. */
-			kAll = 6u,
 		};
 
 		inline static entryType dispatch_target_entry( const javaMethod *method ) {
@@ -54,11 +54,11 @@ namespace shared {
 			/* lack of an nmethod means there
 			   is no compiled code for it. */
 			if ( !method->_nmethod )
-				return entryType::kC2I2I;
+				return entryType::kUncompiled;
 			/* else, the method has been compiled and is ready
 			   to be called from compiled and interpreted code. */
 			else
-				return entryType::kC2I2C;
+				return entryType::kCompiled;
 
 			return entryType::kNone;
 		}
@@ -100,6 +100,9 @@ namespace shared {
 		struct entryBackup {
 			glob64Address _i2i_backup{};
 			glob64Address _i2c_backup{};
+			/* this thing will hold an original c2i entry address at first,
+			   but may get overwritten with code's original address if a
+				 compiled method is hooked */
 			glob64Address _c2i_backup{};
 
 			inline constexpr entryBackup( ) = default;
@@ -156,28 +159,31 @@ namespace shared {
 				return false;
 
 			switch ( _entry_type ) {
-			case entryType::kI2I:
+			case entryType::kI2I: {
 				_i2i_tramp = make_i2i_trampoline( *this );
-				
+
 				return _i2i_tramp._ptr ? true : false;
-			case entryType::kI2C:
-				_i2c_tramp = make_i2c_trampoline( *this );
-
-				return _i2c_tramp._ptr ? true : false;
-			case entryType::kC2I2I:
+			}
+			case entryType::kUncompiled: {
 				_i2i_tramp = make_i2i_trampoline( *this );
+				_i2c_tramp = make_i2i_trampoline( *this );
 				_c2i_tramp = make_c2i_trampoline( *this );
 
-				return ( _i2i_tramp._ptr && _c2i_tramp._ptr ) ? true : false;
-			case entryType::kC2I2C:
+				return ( _i2i_tramp._ptr && _i2c_tramp._ptr && _c2i_tramp._ptr ) ? true : false;
+			}
+			case entryType::kCompiled: {
 				_i2c_tramp = make_i2c_trampoline( *this );
-				_c2i_tramp = make_c2i_trampoline( *this );
 
-				return ( _i2c_tramp._ptr && _c2i_tramp._ptr ) ? true : false;
-			case entryType::kC2I:
-				_c2i_tramp = make_c2i_trampoline( *this );
+				/* _c2i_tramp is not needed as this function
+					 can be hooked with a regular minhook... */
+				_c2i_tramp = _replace;
 
-				return _c2i_tramp._ptr ? true : false;
+				const auto res = MH_CreateHook( _target->_c2i_entry.as<PVOID>( ), _c2i_tramp.as<PVOID>( ),
+					glob64Address{ &_orig_entries._c2i_backup }.as<PVOID *>( )
+				);
+
+				return ( _i2c_tramp._ptr && _c2i_tramp._ptr && res == MH_OK ) ? true : false;
+			}
 			case entryType::kNone:
 				return false;
 			}
@@ -195,45 +201,31 @@ namespace shared {
 
 				return true;
 			}
-			case entryType::kI2C: {
-				if ( !_i2c_tramp )
+			case entryType::kUncompiled: {
+				if ( !_i2i_tramp || !_i2c_tramp || !_c2i_tramp )
 					return false;
 
+				_target->_i2i_entry = _i2i_tramp;
 				_target->_i2c_entry = _i2c_tramp;
+				_target->_c2i_entry = _c2i_tramp;
 
 				return true;
 			}
-			case entryType::kC2I2C: {
+			case entryType::kCompiled: {
 				if ( !_i2c_tramp || !_c2i_tramp )
 					return false;
 
-				_target->_c2i_entry = _c2i_tramp;
 				_target->_i2c_entry = _i2c_tramp;
 
-				return true;
-			}
-			case entryType::kC2I2I: {
-				if ( !_c2i_tramp || !_i2i_tramp )
-					return false;
+				const auto res = MH_EnableHook( _target->_c2i_entry.as<PVOID>( ) );
 
-				_target->_c2i_entry = _c2i_tramp;
-				_target->_i2i_entry = _i2i_tramp;
-
-				return true;
-			}
-			case entryType::kC2I: {
-				if ( !_c2i_tramp )
-					return false;
-				 
-				_target->_c2i_entry = _c2i_tramp;
-
-				return true;
+				return res == MH_OK ? true : false;
 			}
 			case entryType::kNone:
 				return false;
 			}
 
-			return false;
+			return true;
 		}
 
 		inline void restore( ) {
