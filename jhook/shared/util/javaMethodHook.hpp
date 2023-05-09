@@ -2,9 +2,9 @@
 
 namespace shared {
 	class JavaMethodHook {
-		friend static glob64Address make_i2i_trampoline( const JavaMethodHook &hook );
-		friend static glob64Address make_i2c_trampoline( const JavaMethodHook &hook );
-		friend static glob64Address make_c2i_trampoline( const JavaMethodHook &hook );
+		friend glob64Address make_i2i_trampoline( const JavaMethodHook &hook );
+		friend glob64Address make_i2c_trampoline( const JavaMethodHook &hook );
+		friend glob64Address make_c2i_trampoline( const JavaMethodHook &hook );
 
 	public:
 		/* so:
@@ -45,6 +45,10 @@ namespace shared {
 				 used in interpreted methods that are called from a compiled one. */
 			kC2I = 5u,
 #endif
+#if 1
+			/* compiled c2i entry, this is how Minecraft::runGameLoop gets called... */
+			kC2ICompiled = 6u,
+#endif
 		};
 
 		inline static entryType dispatch_target_entry( const javaMethod *method ) {
@@ -67,9 +71,9 @@ namespace shared {
 		   might be overwritten by the hook function
 			 when called from i2c trampoline. */
 		struct i2cRegisterBackup {
-			std::uint8_t *_rbx{}; /* method pointer */
-			std::uint8_t *_r15{}; /* java thread pointer */
-			std::uint8_t *_rsp{}; /* return address pointer */
+			glob64Address _rbx{}; /* method pointer */
+			glob64Address _r15{}; /* java thread pointer */
+			glob64Address _rsp{}; /* return address pointer */
 
 			inline constexpr i2cRegisterBackup( ) = default;
 
@@ -84,6 +88,11 @@ namespace shared {
 			 might be overwritten by the hook function
 			 when called from i2c trampoline. */
 		struct i2iRegisterBackup {
+			glob64Address _rbx{};
+			glob64Address _r15{};
+			glob64Address _rsp{};
+			glob64Address _r13{};
+
 			inline constexpr i2iRegisterBackup( ) = default;
 
 			inline void restore( ) {
@@ -184,6 +193,17 @@ namespace shared {
 
 				return ( _i2c_tramp._ptr && _c2i_tramp._ptr && res == MH_OK ) ? true : false;
 			}
+#if 1
+			case entryType::kC2ICompiled: {
+				_c2i_tramp = _replace;
+
+				const auto res = MH_CreateHook( _target->_c2i_entry.as<PVOID>( ), _c2i_tramp.as<PVOID>( ),
+					glob64Address{ &_orig_entries._c2i_backup }.as<PVOID *>( )
+				);
+
+				return ( _c2i_tramp._ptr && res == MH_OK ) ? true : false;
+			}
+#endif
 			case entryType::kNone:
 				return false;
 			}
@@ -221,6 +241,11 @@ namespace shared {
 
 				return res == MH_OK ? true : false;
 			}
+			case entryType::kC2ICompiled: {
+				const auto res = MH_EnableHook( _target->_c2i_entry.as<PVOID>( ) );
+
+				return res == MH_OK ? true : false;
+			}
 			case entryType::kNone:
 				return false;
 			}
@@ -242,6 +267,14 @@ namespace shared {
 
 			_i2i_reg_backup.restore( );
 			_i2c_reg_backup.restore( );
+		}
+
+		inline glob64Address compiled_c2i_entry( ) const {
+			if ( _entry_type != entryType::kCompiled
+				&& _entry_type != entryType::kC2ICompiled )
+				return nullptr;
+
+			return _c2i_tramp;
 		}
 	};
 }

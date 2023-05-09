@@ -12,6 +12,8 @@ namespace shared {
 #endif
 
 		jni.on_startup( );
+
+		MH_Initialize( );
 	}
 
 	RuntimeContext context{};

@@ -18,7 +18,7 @@
 #include <thread>
 #include <functional>
 #include <type_traits>
-
+#include <omp_llvm.h>
 #include <windows.h>
 #include <jni.h>
 
@@ -28,6 +28,18 @@
 #include <libs/imgui/imgui.h>
 #include <libs/imgui/imgui_impl_win32.h>
 #include <libs/imgui/imgui_impl_opengl2.h>
+#endif
+#if !USE_ASM_INLINING
+#include <libs/asmjit/asmjit.h>
+#define __ a.
+#define JIT_START \
+using namespace asmjit; \
+ \
+JitRuntime jrt{}; \
+CodeHolder code{}; \
+x86::Assembler a{ &code }; \
+ \
+code.init( jrt.environment( ) );
 #endif
 
 namespace shared {

@@ -77,5 +77,19 @@ namespace shared {
 		inline std::string signature( ) const {
 			return _const_method->signature( )->str( );
 		}
+
+		inline instanceKlass *owner( ) const {
+			return _const_method->_const_pool->_holder;
+		}
+
+		/* this will try to invoke this method as
+			 if it was called from an interpreter. */
+		template <typename resType, typename... argsType>
+		resType invoke( jobject target, argsType&&... args ) const;
+
+		template <typename resType, typename... argsType>
+		resType invoke_static( argsType&&... args ) const;
+
+		void print_debug_info( ) const;
 	};
 }

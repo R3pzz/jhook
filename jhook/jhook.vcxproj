@@ -42,7 +42,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>ClangCL</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -80,7 +80,7 @@
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)</IncludePath>
     <ExternalIncludePath>C:\Program Files\Java\jdk-16.0.2\include\win32;C:\Program Files\Java\jdk-16.0.2\include;$(ExternalIncludePath)</ExternalIncludePath>
-    <LibraryPath>C:\Program Files\Java\jdk-16.0.2\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Program Files\Java\jdk-16.0.2\lib;$(ProjectDir)libs\asmjit\bin;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -121,7 +121,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;JHOOK_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -133,7 +133,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>opengl32.lib;jvm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>asmjit.lib;opengl32.lib;jvm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -157,64 +157,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="entry.cpp" />
-    <ClCompile Include="libs\asmjit\arm\a64assembler.cpp" />
-    <ClCompile Include="libs\asmjit\arm\a64builder.cpp" />
-    <ClCompile Include="libs\asmjit\arm\a64compiler.cpp" />
-    <ClCompile Include="libs\asmjit\arm\a64emithelper.cpp" />
-    <ClCompile Include="libs\asmjit\arm\a64formatter.cpp" />
-    <ClCompile Include="libs\asmjit\arm\a64func.cpp" />
-    <ClCompile Include="libs\asmjit\arm\a64instapi.cpp" />
-    <ClCompile Include="libs\asmjit\arm\a64instdb.cpp" />
-    <ClCompile Include="libs\asmjit\arm\a64operand.cpp" />
-    <ClCompile Include="libs\asmjit\arm\a64rapass.cpp" />
-    <ClCompile Include="libs\asmjit\arm\armformatter.cpp" />
-    <ClCompile Include="libs\asmjit\core\archtraits.cpp" />
-    <ClCompile Include="libs\asmjit\core\assembler.cpp" />
-    <ClCompile Include="libs\asmjit\core\builder.cpp" />
-    <ClCompile Include="libs\asmjit\core\codeholder.cpp" />
-    <ClCompile Include="libs\asmjit\core\codewriter.cpp" />
-    <ClCompile Include="libs\asmjit\core\compiler.cpp" />
-    <ClCompile Include="libs\asmjit\core\constpool.cpp" />
-    <ClCompile Include="libs\asmjit\core\cpuinfo.cpp" />
-    <ClCompile Include="libs\asmjit\core\emithelper.cpp" />
-    <ClCompile Include="libs\asmjit\core\emitter.cpp" />
-    <ClCompile Include="libs\asmjit\core\emitterutils.cpp" />
-    <ClCompile Include="libs\asmjit\core\environment.cpp" />
-    <ClCompile Include="libs\asmjit\core\errorhandler.cpp" />
-    <ClCompile Include="libs\asmjit\core\formatter.cpp" />
-    <ClCompile Include="libs\asmjit\core\func.cpp" />
-    <ClCompile Include="libs\asmjit\core\funcargscontext.cpp" />
-    <ClCompile Include="libs\asmjit\core\globals.cpp" />
-    <ClCompile Include="libs\asmjit\core\inst.cpp" />
-    <ClCompile Include="libs\asmjit\core\jitallocator.cpp" />
-    <ClCompile Include="libs\asmjit\core\jitruntime.cpp" />
-    <ClCompile Include="libs\asmjit\core\logger.cpp" />
-    <ClCompile Include="libs\asmjit\core\operand.cpp" />
-    <ClCompile Include="libs\asmjit\core\osutils.cpp" />
-    <ClCompile Include="libs\asmjit\core\ralocal.cpp" />
-    <ClCompile Include="libs\asmjit\core\rapass.cpp" />
-    <ClCompile Include="libs\asmjit\core\rastack.cpp" />
-    <ClCompile Include="libs\asmjit\core\string.cpp" />
-    <ClCompile Include="libs\asmjit\core\support.cpp" />
-    <ClCompile Include="libs\asmjit\core\target.cpp" />
-    <ClCompile Include="libs\asmjit\core\type.cpp" />
-    <ClCompile Include="libs\asmjit\core\virtmem.cpp" />
-    <ClCompile Include="libs\asmjit\core\zone.cpp" />
-    <ClCompile Include="libs\asmjit\core\zonehash.cpp" />
-    <ClCompile Include="libs\asmjit\core\zonelist.cpp" />
-    <ClCompile Include="libs\asmjit\core\zonestack.cpp" />
-    <ClCompile Include="libs\asmjit\core\zonetree.cpp" />
-    <ClCompile Include="libs\asmjit\core\zonevector.cpp" />
-    <ClCompile Include="libs\asmjit\x86\x86assembler.cpp" />
-    <ClCompile Include="libs\asmjit\x86\x86builder.cpp" />
-    <ClCompile Include="libs\asmjit\x86\x86compiler.cpp" />
-    <ClCompile Include="libs\asmjit\x86\x86emithelper.cpp" />
-    <ClCompile Include="libs\asmjit\x86\x86formatter.cpp" />
-    <ClCompile Include="libs\asmjit\x86\x86func.cpp" />
-    <ClCompile Include="libs\asmjit\x86\x86instapi.cpp" />
-    <ClCompile Include="libs\asmjit\x86\x86instdb.cpp" />
-    <ClCompile Include="libs\asmjit\x86\x86operand.cpp" />
-    <ClCompile Include="libs\asmjit\x86\x86rapass.cpp" />
     <ClCompile Include="libs\glm\detail\glm.cpp" />
     <ClCompile Include="libs\imgui\imgui.cpp" />
     <ClCompile Include="libs\imgui\imgui_draw.cpp" />
@@ -227,6 +169,7 @@
     <ClCompile Include="libs\minhook\src\hde\hde64.c" />
     <ClCompile Include="libs\minhook\src\hook.c" />
     <ClCompile Include="libs\minhook\src\trampoline.c" />
+    <ClCompile Include="shared\java\javaMethod.cpp" />
     <ClCompile Include="shared\java\jniWrangler.cpp" />
     <ClCompile Include="shared\java\threadList.cpp" />
     <ClCompile Include="shared\java\threadLocalStorage.cpp" />
@@ -236,71 +179,35 @@
     <ClCompile Include="shared\util\nativeMethodHook.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="libs\asmjit\a64.h" />
-    <ClInclude Include="libs\asmjit\arm.h" />
-    <ClInclude Include="libs\asmjit\arm\a64archtraits_p.h" />
-    <ClInclude Include="libs\asmjit\arm\a64assembler.h" />
-    <ClInclude Include="libs\asmjit\arm\a64builder.h" />
-    <ClInclude Include="libs\asmjit\arm\a64compiler.h" />
-    <ClInclude Include="libs\asmjit\arm\a64emithelper_p.h" />
-    <ClInclude Include="libs\asmjit\arm\a64emitter.h" />
-    <ClInclude Include="libs\asmjit\arm\a64formatter_p.h" />
-    <ClInclude Include="libs\asmjit\arm\a64func_p.h" />
-    <ClInclude Include="libs\asmjit\arm\a64globals.h" />
-    <ClInclude Include="libs\asmjit\arm\a64instapi_p.h" />
-    <ClInclude Include="libs\asmjit\arm\a64instdb.h" />
-    <ClInclude Include="libs\asmjit\arm\a64instdb_p.h" />
-    <ClInclude Include="libs\asmjit\arm\a64operand.h" />
-    <ClInclude Include="libs\asmjit\arm\a64rapass_p.h" />
-    <ClInclude Include="libs\asmjit\arm\a64utils.h" />
-    <ClInclude Include="libs\asmjit\arm\armformatter_p.h" />
-    <ClInclude Include="libs\asmjit\arm\armglobals.h" />
-    <ClInclude Include="libs\asmjit\arm\armoperand.h" />
     <ClInclude Include="libs\asmjit\asmjit-scope-begin.h" />
     <ClInclude Include="libs\asmjit\asmjit-scope-end.h" />
     <ClInclude Include="libs\asmjit\asmjit.h" />
     <ClInclude Include="libs\asmjit\core.h" />
-    <ClInclude Include="libs\asmjit\core\api-build_p.h" />
     <ClInclude Include="libs\asmjit\core\api-config.h" />
     <ClInclude Include="libs\asmjit\core\archcommons.h" />
     <ClInclude Include="libs\asmjit\core\archtraits.h" />
     <ClInclude Include="libs\asmjit\core\assembler.h" />
     <ClInclude Include="libs\asmjit\core\builder.h" />
-    <ClInclude Include="libs\asmjit\core\builder_p.h" />
     <ClInclude Include="libs\asmjit\core\codebuffer.h" />
     <ClInclude Include="libs\asmjit\core\codeholder.h" />
-    <ClInclude Include="libs\asmjit\core\codewriter_p.h" />
     <ClInclude Include="libs\asmjit\core\compiler.h" />
     <ClInclude Include="libs\asmjit\core\compilerdefs.h" />
     <ClInclude Include="libs\asmjit\core\constpool.h" />
     <ClInclude Include="libs\asmjit\core\cpuinfo.h" />
-    <ClInclude Include="libs\asmjit\core\emithelper_p.h" />
     <ClInclude Include="libs\asmjit\core\emitter.h" />
-    <ClInclude Include="libs\asmjit\core\emitterutils_p.h" />
     <ClInclude Include="libs\asmjit\core\environment.h" />
     <ClInclude Include="libs\asmjit\core\errorhandler.h" />
     <ClInclude Include="libs\asmjit\core\formatter.h" />
-    <ClInclude Include="libs\asmjit\core\formatter_p.h" />
     <ClInclude Include="libs\asmjit\core\func.h" />
-    <ClInclude Include="libs\asmjit\core\funcargscontext_p.h" />
     <ClInclude Include="libs\asmjit\core\globals.h" />
     <ClInclude Include="libs\asmjit\core\inst.h" />
     <ClInclude Include="libs\asmjit\core\jitallocator.h" />
     <ClInclude Include="libs\asmjit\core\jitruntime.h" />
     <ClInclude Include="libs\asmjit\core\logger.h" />
-    <ClInclude Include="libs\asmjit\core\misc_p.h" />
     <ClInclude Include="libs\asmjit\core\operand.h" />
     <ClInclude Include="libs\asmjit\core\osutils.h" />
-    <ClInclude Include="libs\asmjit\core\osutils_p.h" />
-    <ClInclude Include="libs\asmjit\core\raassignment_p.h" />
-    <ClInclude Include="libs\asmjit\core\rabuilders_p.h" />
-    <ClInclude Include="libs\asmjit\core\radefs_p.h" />
-    <ClInclude Include="libs\asmjit\core\ralocal_p.h" />
-    <ClInclude Include="libs\asmjit\core\rapass_p.h" />
-    <ClInclude Include="libs\asmjit\core\rastack_p.h" />
     <ClInclude Include="libs\asmjit\core\string.h" />
     <ClInclude Include="libs\asmjit\core\support.h" />
-    <ClInclude Include="libs\asmjit\core\support_p.h" />
     <ClInclude Include="libs\asmjit\core\target.h" />
     <ClInclude Include="libs\asmjit\core\type.h" />
     <ClInclude Include="libs\asmjit\core\virtmem.h" />
@@ -312,21 +219,13 @@
     <ClInclude Include="libs\asmjit\core\zonetree.h" />
     <ClInclude Include="libs\asmjit\core\zonevector.h" />
     <ClInclude Include="libs\asmjit\x86.h" />
-    <ClInclude Include="libs\asmjit\x86\x86archtraits_p.h" />
     <ClInclude Include="libs\asmjit\x86\x86assembler.h" />
     <ClInclude Include="libs\asmjit\x86\x86builder.h" />
     <ClInclude Include="libs\asmjit\x86\x86compiler.h" />
-    <ClInclude Include="libs\asmjit\x86\x86emithelper_p.h" />
     <ClInclude Include="libs\asmjit\x86\x86emitter.h" />
-    <ClInclude Include="libs\asmjit\x86\x86formatter_p.h" />
-    <ClInclude Include="libs\asmjit\x86\x86func_p.h" />
     <ClInclude Include="libs\asmjit\x86\x86globals.h" />
-    <ClInclude Include="libs\asmjit\x86\x86instapi_p.h" />
     <ClInclude Include="libs\asmjit\x86\x86instdb.h" />
-    <ClInclude Include="libs\asmjit\x86\x86instdb_p.h" />
-    <ClInclude Include="libs\asmjit\x86\x86opcode_p.h" />
     <ClInclude Include="libs\asmjit\x86\x86operand.h" />
-    <ClInclude Include="libs\asmjit\x86\x86rapass_p.h" />
     <ClInclude Include="libs\glm\common.hpp" />
     <ClInclude Include="libs\glm\detail\compute_common.hpp" />
     <ClInclude Include="libs\glm\detail\compute_vector_relational.hpp" />
