@@ -94,6 +94,12 @@ namespace shared::detail {
 
 			return *this;
 		}
+
+#if USE_ASMJIT_PROVIDER
+		inline operator asmjit::x86::Mem( ) const {
+			return asmjit::x86::Mem{ _ptr, 8u };
+		}
+#endif
 	};
 }
 

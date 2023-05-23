@@ -19,6 +19,12 @@ namespace shared {
 		std::uint16_t _name_idx{};
 		std::uint16_t _sig_idx{};
 
+		std::uint16_t _method_idnum{};
+		std::uint16_t _max_stack{};
+		std::uint16_t _max_locals{};
+		std::uint16_t _size_of_params{};
+		std::uint16_t _orig_method_idnum{};
+
 	public:
 		inline constexpr constMethod( ) = default;
 
@@ -28,6 +34,38 @@ namespace shared {
 
 		inline javaSymbol *signature( ) const {
 			return _const_pool->at<javaSymbol *>( _sig_idx );
+		}
+
+		/* intermediate representation code start */
+		inline glob64Address ir_code_start( ) const {
+			return glob64Address{ this }.offset( sizeof( constMethod ) );
+		}
+
+		/* intermediate representation code end */
+		inline glob64Address ir_code_end( ) const {
+			return glob64Address{ this }.offset( sizeof( constMethod ) + _code_size );
+		}
+
+		inline std::uint16_t ir_code_size( ) const {
+			return _code_size;
+		}
+
+		inline void ir_code_to_buf( ) const {
+			std::printf( "ir code dump(method name: %s, sig: %s, code size: %u, this: %p, code base: %p):\n", name( )->str( ).c_str( ), signature( )->str( ).c_str( ), ir_code_size( ), this, ir_code_start( ) );
+
+			for ( std::size_t b{}; b < ir_code_size( ); b++ )
+				std::printf( "	byte %x\n", *ir_code_start( ).offset( b ).as<std::uint8_t *>( ) );
+
+			std::printf( "\n" );
+		}
+
+		inline void ir_code_to_stream( std::ofstream &stream ) const {
+			stream << "ir code dump(method name: " << name( )->str( ) << ", sig: " << signature( )->str( ) << ", code size: " << ir_code_size( ) << "):" << std::endl;
+
+			for ( std::size_t b{}; b < ir_code_size( ); b++ )
+				stream << std::to_string( *ir_code_start( ).offset( b ).as<std::uint8_t *>( ) ) << " ";
+
+			stream << std::endl;
 		}
 	};
 
@@ -81,14 +119,6 @@ namespace shared {
 		inline instanceKlass *owner( ) const {
 			return _const_method->_const_pool->_holder;
 		}
-
-		/* this will try to invoke this method as
-			 if it was called from an interpreter. */
-		template <typename resType, typename... argsType>
-		resType invoke( jobject target, argsType&&... args ) const;
-
-		template <typename resType, typename... argsType>
-		resType invoke_static( argsType&&... args ) const;
 
 		void print_debug_info( ) const;
 	};

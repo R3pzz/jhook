@@ -21,34 +21,26 @@ namespace shared {
 		*		- we have to hook i2c entry as a normal i2c
 		*			entry through a trampoline.
 		*		- we have to hook c2i entry with a callind convention, which is
-		*			`result'(*)(JNIEnv **env, jobject **object, `other args...')
+		*			`result'(*)(JNIEnv *env, jobject object, `other args...')
 		*			and call original method from there with the same one via
 		*			a regular minhook.
+		* 
+		* PS: we'll need to handle situations when the method is initially
+		*			interpreted, but gets compiled after a certain amount of
+		*			iterations. as a result, all of our hooks (i2c and c2i basically)
+		*			will get reset. we need to somehow rework this method so
+		*			the hook gets changed even after compiling the method.
 		*/
 		enum struct entryType : std::uint32_t {
 			kNone = 0u,
-			/* interpreter-to-interpreter entry. used in uncompiled methods
-			   that are called from an interpreter. */
-			kI2I = 1u,
+
 			/* interpreter-called method hooking sequence */
 			kUncompiled = 2u,
 			/* compiled method hooking sequence */
 			kCompiled = 3u,
 
-			/* these ones require different dispatch sequence and have to
-			   be handled differently in compiled and interpreted methods */
-#if 0
-			/* interpreter-to-compiled entry. used in compiled methods
-				 that are called from an interpreter. */
-			kI2C = 4u,
-			/* compiled-to-interpreter or compiled-to-compiled(when nmethod is there) entry.
-				 used in interpreted methods that are called from a compiled one. */
-			kC2I = 5u,
-#endif
-#if 1
-			/* compiled c2i entry, this is how Minecraft::runGameLoop gets called... */
-			kC2ICompiled = 6u,
-#endif
+			/* left here for debugging purposes... */
+			kI2CUncompiled = 4u,
 		};
 
 		inline static entryType dispatch_target_entry( const javaMethod *method ) {
@@ -73,7 +65,7 @@ namespace shared {
 		struct i2cRegisterBackup {
 			glob64Address _rbx{}; /* method pointer */
 			glob64Address _r15{}; /* java thread pointer */
-			glob64Address _rsp{}; /* return address pointer */
+			glob64Address _rsp{}; /* stack pointer */
 
 			inline constexpr i2cRegisterBackup( ) = default;
 
@@ -96,7 +88,10 @@ namespace shared {
 			inline constexpr i2iRegisterBackup( ) = default;
 
 			inline void restore( ) {
-				
+				_rbx = nullptr;
+				_r15 = nullptr;
+				_rsp = nullptr;
+				_r13 = nullptr;
 			}
 		};
 
@@ -117,10 +112,19 @@ namespace shared {
 			inline constexpr entryBackup( ) = default;
 
 			inline entryBackup( javaMethod *method )
-				: _i2i_backup{ method->_i2i_entry }
-				, _i2c_backup{ method->_i2c_entry }
-				, _c2i_backup{ method->_c2i_entry }
+				: _i2i_backup{ method ? method->_i2i_entry : nullptr }
+				, _i2c_backup{ method ? method->_i2c_entry : nullptr }
+				, _c2i_backup{ method ? method->_c2i_entry : nullptr }
 			{}
+
+			inline void store( javaMethod *method ) {
+				if ( !method )
+					return;
+
+				_i2i_backup = method->_i2i_entry;
+				_i2c_backup = method->_i2c_entry;
+				_c2i_backup = method->_c2i_entry;
+			}
 
 			inline void restore( javaMethod *method ) {
 				if ( !method )
@@ -153,6 +157,10 @@ namespace shared {
 	public:
 		inline constexpr JavaMethodHook( ) = default;
 
+		inline constexpr JavaMethodHook( const JavaMethodHook & ) = delete;
+
+		inline constexpr JavaMethodHook &operator=( const JavaMethodHook & ) = delete;
+
 		inline JavaMethodHook( javaMethod *target, const glob64Address replace )
 			: _entry_type{ dispatch_target_entry( target ) }, _target{ target }, _replace{ replace }, _orig_entries{ target } {}
 
@@ -163,118 +171,28 @@ namespace shared {
 			restore( );
 		}
 
-		inline bool init( ) {
-			if ( _i2i_tramp._ptr || _i2c_tramp._ptr )
-				return false;
+		bool init( javaMethod *target, const glob64Address replace, const entryType entry_type = entryType::kNone );
 
-			switch ( _entry_type ) {
-			case entryType::kI2I: {
-				_i2i_tramp = make_i2i_trampoline( *this );
-
-				return _i2i_tramp._ptr ? true : false;
-			}
-			case entryType::kUncompiled: {
-				_i2i_tramp = make_i2i_trampoline( *this );
-				_i2c_tramp = make_i2i_trampoline( *this );
-				_c2i_tramp = make_c2i_trampoline( *this );
-
-				return ( _i2i_tramp._ptr && _i2c_tramp._ptr && _c2i_tramp._ptr ) ? true : false;
-			}
-			case entryType::kCompiled: {
-				_i2c_tramp = make_i2c_trampoline( *this );
-
-				/* _c2i_tramp is not needed as this function
-					 can be hooked with a regular minhook... */
-				_c2i_tramp = _replace;
-
-				const auto res = MH_CreateHook( _target->_c2i_entry.as<PVOID>( ), _c2i_tramp.as<PVOID>( ),
-					glob64Address{ &_orig_entries._c2i_backup }.as<PVOID *>( )
-				);
-
-				return ( _i2c_tramp._ptr && _c2i_tramp._ptr && res == MH_OK ) ? true : false;
-			}
-#if 1
-			case entryType::kC2ICompiled: {
-				_c2i_tramp = _replace;
-
-				const auto res = MH_CreateHook( _target->_c2i_entry.as<PVOID>( ), _c2i_tramp.as<PVOID>( ),
-					glob64Address{ &_orig_entries._c2i_backup }.as<PVOID *>( )
-				);
-
-				return ( _c2i_tramp._ptr && res == MH_OK ) ? true : false;
-			}
-#endif
-			case entryType::kNone:
-				return false;
-			}
-
-			return false;
-		}
-
-		inline bool enable( ) {
-			switch ( _entry_type ) {
-			case entryType::kI2I: {
-				if ( !_i2i_tramp )
-					return false;
-				
-				_target->_i2i_entry = _i2i_tramp;
-
-				return true;
-			}
-			case entryType::kUncompiled: {
-				if ( !_i2i_tramp || !_i2c_tramp || !_c2i_tramp )
-					return false;
-
-				_target->_i2i_entry = _i2i_tramp;
-				_target->_i2c_entry = _i2c_tramp;
-				_target->_c2i_entry = _c2i_tramp;
-
-				return true;
-			}
-			case entryType::kCompiled: {
-				if ( !_i2c_tramp || !_c2i_tramp )
-					return false;
-
-				_target->_i2c_entry = _i2c_tramp;
-
-				const auto res = MH_EnableHook( _target->_c2i_entry.as<PVOID>( ) );
-
-				return res == MH_OK ? true : false;
-			}
-			case entryType::kC2ICompiled: {
-				const auto res = MH_EnableHook( _target->_c2i_entry.as<PVOID>( ) );
-
-				return res == MH_OK ? true : false;
-			}
-			case entryType::kNone:
-				return false;
-			}
-
-			return true;
-		}
+		bool enable( );
 
 		inline void restore( ) {
 			_orig_entries.restore( _target );
 
 			if ( _i2i_tramp._ptr )
-				std::free( _i2i_tramp.as<void *>( ) );
+				VirtualFree( _i2i_tramp.as<void *>( ), 0u, MEM_DECOMMIT );
 
 			if ( _i2c_tramp._ptr )
-				std::free( _i2c_tramp.as<void *>( ) );
+				VirtualFree( _i2c_tramp.as<void *>( ), 0u, MEM_DECOMMIT );
 
 			if ( _c2i_tramp._ptr )
-				std::free( _c2i_tramp.as<void *>( ) );
+				VirtualFree( _c2i_tramp.as<void *>( ), 0u, MEM_DECOMMIT );
 
 			_i2i_reg_backup.restore( );
 			_i2c_reg_backup.restore( );
 		}
-
-		inline glob64Address compiled_c2i_entry( ) const {
-			if ( _entry_type != entryType::kCompiled
-				&& _entry_type != entryType::kC2ICompiled )
-				return nullptr;
-
-			return _c2i_tramp;
+		
+		inline const i2iRegisterBackup &i2i_reg_backup( ) const {
+			return _i2i_reg_backup;
 		}
 	};
 }

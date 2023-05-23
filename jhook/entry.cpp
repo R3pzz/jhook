@@ -2,13 +2,8 @@
 
 shd::JavaMethodHook jmh{};
 
-void run_game_loop( JNIEnv *env, jobject object, jboolean render_world_in ) {
-	using thisFunc = void( * )( JNIEnv *, jobject, jboolean );
-
-	std::printf( "caller env at %p!\n", env );
-	std::printf( "nice weather today bro!\n" );
-
-	//return jmh.compiled_c2i_entry( ).as<thisFunc>( )( env, object, render_world_in );
+void create_world( ) {
+	std::printf( "called createWorld!\n" );
 }
 
 void init( HINSTANCE instance ) {
@@ -24,29 +19,19 @@ void init( HINSTANCE instance ) {
 
 		std::printf( "context created!\n" );
 
-#if 0
-		{
-			auto *mc = shd::jni.find_class( "net/minecraft/client/Minecraft" );
-			auto *method = mc->method_at( "runGameLoop" );
-
-			jmh = shd::JavaMethodHook{ method, &run_game_loop, shd::JavaMethodHook::entryType::kC2ICompiled };
-
-			jmh.init( );
-			jmh.enable( );
-		}
-#endif
-
 #if 1
 		{
 			auto *mc = shd::jni.find_class( "net/minecraft/client/Minecraft" );
+			auto *method = mc->method_at( "createWorld" );
 
-			for ( std::size_t i{}; i < mc->_methods->_size; i++ )
-				mc->_methods->at( i )->print_debug_info( );
+			std::printf( "----method before hooking----\n" );
+			method->print_debug_info( );
 
-			auto *rgl = mc->method_at( "runGameLoop" );
-			auto *oop = shd::oopHandle::from_jobject( shd::jni.env( )->FindClass( "net/minecraft/client/Minecraft" ) );
+			jmh.init( method, &create_world, shd::JavaMethodHook::entryType::kI2CUncompiled );
+			jmh.enable( );
 
-			std::printf( "rgl at %p (klass oop: %p, c2i: %p)\n", rgl, oop, rgl->_c2i_entry );
+			std::printf( "----method after hooking----\n" );
+			method->print_debug_info( );
 		}
 #endif
 		

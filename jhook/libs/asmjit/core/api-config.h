@@ -610,4 +610,6 @@ namespace asmjit {
 #undef ASMJIT_CXX_GNU
 #undef ASMJIT_CXX_MAKE_VER
 
+#define ASMJIT_NO_AARCH64
+
 #endif // ASMJIT_CORE_API_CONFIG_H_INCLUDED
